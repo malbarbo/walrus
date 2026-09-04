@@ -439,17 +439,12 @@ impl ModuleTypes {
     }
 
     pub(crate) fn find_for_function_entry(&self, results: &[ValType]) -> Option<TypeId> {
-        self.arena.iter().find_map(|(id, ty)| {
-            if ty.is_function()
-                && ty.is_for_function_entry()
-                && ty.params().is_empty()
-                && ty.results() == results
-            {
-                Some(id)
-            } else {
-                None
-            }
-        })
+        // The arena is a set keyed by the type's shape, so ask it rather than
+        // scanning it: this used to be a linear walk of every type per parsed
+        // function body, O(functions x types) over a whole module.
+        let probe =
+            Type::for_function_entry(self.arena.next_id(), results.to_vec().into_boxed_slice());
+        self.arena.find(&probe)
     }
 
     /// Push a new rec group, updating the type-to-group index.
