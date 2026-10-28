@@ -487,6 +487,35 @@ mod tests {
     }
 
     #[test]
+    fn dfs_pre_order_mut_offers_each_id_once() {
+        // Only the id's method is overridden: the instruction's is the
+        // default, which must leave its fields to `Instr::visit_mut`.
+        #[derive(Default)]
+        struct Globals(usize);
+        impl VisitorMut for Globals {
+            fn visit_global_id_mut(&mut self, _: &mut crate::GlobalId) {
+                self.0 += 1;
+            }
+        }
+
+        let mut module = crate::Module::default();
+        let global = module.globals.add_local(
+            crate::ValType::I32,
+            false,
+            false,
+            crate::ConstExpr::Value(Value::I32(0)),
+        );
+        let mut builder = crate::FunctionBuilder::new(&mut module.types, &[], &[]);
+        builder.func_body().global_get(global).drop();
+        let id = builder.finish(vec![], &mut module.funcs);
+        let func = module.funcs.get_mut(id).kind.unwrap_local_mut();
+
+        let mut visitor = Globals::default();
+        crate::ir::dfs_pre_order_mut(&mut visitor, func, func.entry_block());
+        assert_eq!(visitor.0, 1);
+    }
+
+    #[test]
     fn dfs_pre_order_mut() {
         let mut module = crate::Module::default();
         let func = make_test_func(&mut module);

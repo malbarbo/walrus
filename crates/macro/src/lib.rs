@@ -451,7 +451,9 @@ fn create_visit(variants: &[WalrusVariant]) -> impl quote::ToTokens {
             #[doc=#doc]
             #[inline]
             fn #method_name_mut(&mut self, instr: &mut #name) {
-                instr.visit_mut(self);
+                // `Instr::visit_mut` visits the fields after this returns,
+                // as `Instr::visit` does for `Visitor`: recursing here too
+                // offered every id of the instruction twice.
             }
         });
 
